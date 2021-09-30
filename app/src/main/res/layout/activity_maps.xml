@@ -11,13 +11,56 @@
         android:background="@color/purple_500"
         android:gravity="center"
         android:lineSpacingExtra="1dp"
-
         android:text="Tweeter Demo"
         android:textColor="@color/white"
         android:textSize="15dp"
         android:textStyle="bold" />
+    <RelativeLayout
+        android:id="@+id/search_layout"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@drawable/seach_edittext_background"
+        android:layout_margin="5dp"
+        >
 
-    <fragment xmlns:android="http://schemas.android.com/apk/res/android"
+        <ImageView
+            android:id="@+id/iv_search_mic"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentLeft="true"
+            android:layout_centerVertical="true"
+            android:src="@drawable/ic_search_black"
+            android:paddingLeft="10dp"/>
+
+        <EditText
+            android:id="@+id/ed_home_searchbar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_toLeftOf="@+id/imagebutton"
+            android:layout_toRightOf="@+id/iv_search_mic"
+            android:background="@android:color/transparent"
+            android:hint="Search tweet"
+            android:padding="10dp"
+            android:singleLine="true"
+            android:imeOptions="actionSearch"
+            android:inputType="text"
+            />
+
+        <ImageView
+            android:visibility="gone"
+            android:id="@+id/imagebutton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentRight="true"
+            android:layout_centerVertical="true"
+            android:onClick="onbuttonClick"
+            android:src="@drawable/ic_mic_black_24dp"
+            android:paddingRight="10dp"/>
+
+    </RelativeLayout>
+
+
+    <fragment
         xmlns:map="http://schemas.android.com/apk/res-auto"
         xmlns:tools="http://schemas.android.com/tools"
         android:id="@+id/map"

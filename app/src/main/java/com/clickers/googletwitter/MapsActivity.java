@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModelProvider;
 import android.Manifest;
 import android.app.ProgressDialog;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Criteria;
 import android.location.Location;
@@ -14,13 +15,23 @@ import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.StrictMode;
+import android.speech.RecognizerIntent;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
+import android.view.KeyEvent;
+import android.view.View;
+import android.view.inputmethod.EditorInfo;
+import android.widget.EditText;
+import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.gson.Gson;
 
@@ -63,9 +74,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private static final String TAG = "MapsActivity";
     ProgressDialog dialog;
 
-    ArrayList<TwitterModel> markersArray;
     private MainActivityViewModel mainActivityViewModel;
 
+    // for search
+    EditText ed_home_searchbar;
+    String search_data = "";
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -96,19 +109,55 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         String bearerToken = "AAAAAAAAAAAAAAAAAAAAAJqtTwEAAAAABLpiu1M4%2FonQfyVTb%2BWvCuOjCFE%3DFMyk8yNRRxXguXS8eWyPzTyOWRg49ARSpGXDU3LDmY1GCR2bXI";
         // frd key
         //  String bearerToken = "AAAAAAAAAAAAAAAAAAAAADX9TQEAAAAAg3vRA4X0eA2tOOvHVektmrQ4kBQ%3Di6ey7uzMCTSmcjWYGzcjpaScVvOD3ZWTwIYCvwDHCQEY852QzR";
-        System.out.println("bearerToken" + "      " + bearerToken);
+
+        ed_home_searchbar = (EditText) findViewById(R.id.ed_home_searchbar);
 
 
+        ed_home_searchbar.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+
+            }
+
+            @Override
+            public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+
+
+            }
+
+            @Override
+            public void afterTextChanged(Editable editable) {
+                search_data = ed_home_searchbar.getText().toString();
+                Log.d("search_data00",search_data);
+                if (search_data.matches(""))
+                {
+
+                     // Log.d("search_data0",search_data);
+                  //  getSearchTwitt(search_data, bearerToken);
+
+                }
+            }
+        });
+
+        ed_home_searchbar.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+            @Override
+            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+                if (actionId == EditorInfo.IME_ACTION_SEARCH) {
+
+                     Log.d("search_data1",search_data);
+                    getSearchTwitt(search_data, bearerToken);
+
+                }
+                return false;
+            }
+        });
         if (null != bearerToken) {
-            System.out.println("bearerToken1" + "      " + bearerToken);
 
             Map<String, String> rules = new HashMap<>();
             rules.put("covid-19", "covid 19 geo location");
             rules.put("museum", "museum has geo");
             rules.put("cat has:images", "cat has images");
             try {
-                System.out.println("bearerToken11" + "      " + bearerToken + "     " + rules);
-
                 setupRules(bearerToken, rules);
                 new Thread(new Runnable() {
                     @Override
@@ -116,6 +165,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                         connectStream(bearerToken);
                     }
                 }).start();
+
+
 
             } catch (IOException e) {
                 e.printStackTrace();
@@ -125,10 +176,56 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 e.printStackTrace();
             }
         } else {
-            System.out.println("bearerToken2" + "      " + bearerToken);
-
             System.out.println("There was a problem getting you bearer token. Please make sure you set the BEARER_TOKEN environment variable");
         }
+
+
+    }
+
+    private void getSearchTwitt(String search_data, String bearerToken) {
+        OkHttpClient client = new OkHttpClient();
+
+        Request request = new Request.Builder()
+                .url("https://api.twitter.com/2/tweets/search/recent?tweet.fields=geo&expansions=geo.place_id&place.fields=geo&query="+search_data)
+                .header("authorization", "Bearer " + bearerToken)
+                .build();
+
+        try {
+            Response response = client.newCall(request).execute();
+
+            ResponseBody responseBody = response.body();
+
+            if (responseBody != null) {
+                BufferedSource source = responseBody.source();
+                Buffer buffer = new Buffer();
+
+                while (!source.exhausted()) {
+                    responseBody.source().read(buffer, 8192);
+                    String data = buffer.readString(Charset.defaultCharset());
+
+                    System.out.println("dataaa:::>"+data);
+
+                  /*  try {
+                        Gson gson = new Gson();
+                        TweetPlaces tweetPlaces = gson.fromJson(data, TweetPlaces.class);
+                        }
+
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+
+                   */
+
+                }
+            }
+
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+
+
     }
 
     /**
@@ -154,6 +251,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mMap.addMarker(new MarkerOptions().position(latLng).title(fullName));
         mMap.animateCamera(CameraUpdateFactory.zoomTo(1.0f));
         mMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
+
     }
 
 
@@ -187,20 +285,38 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                         Gson gson = new Gson();
                         TweetPlaces tweetPlaces = gson.fromJson(data, TweetPlaces.class);
 
+
                         if (tweetPlaces.includes.places.size() > 0) {
                             Double lat = tweetPlaces.includes.places.get(0).geo.bbox.get(0);
                             Double lng = tweetPlaces.includes.places.get(0).geo.bbox.get(1);
 //                            placeCounter++;
                             Log.d("LatLng --- ", String.format(Locale.ENGLISH, "%f, %f", lat, lng));
+
+                       /*     String country = tweetPlaces.includes.places.get(0).fullName;
+                            String id = tweetPlaces.data.id;
+                            String tweet = tweetPlaces.data.text;
+                            String tag = tweetPlaces.matchingRules.get(0).tag;
+
+                        */
+
                             handler.post(new Runnable() {
                                 @Override
                                 public void run() {
                                     addMarker(new LatLng(lat, lng), tweetPlaces.includes.places.get(0).fullName);
-//                                    textView.setText(
-//                                            String.format(
-//                                                    Locale.ENGLISH,
-//                                                    "Latitude : %f, \nLongitude : %f \nCount : %d \nTotalCount : %d \nTweetPlacesCount : %d \nErrorCount : %d",
-//                                                    lat, lng, placeCounter, totalCounter, tweetPlacesCounter, errorCounter));
+
+                                    mMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
+                                        @Override
+                                        public boolean onMarkerClick(Marker marker) {
+
+                                            Intent details = new Intent(getApplicationContext(),DetailActivity.class);
+                                            details.putExtra("id",tweetPlaces.data.id);
+                                            details.putExtra("tweet",tweetPlaces.data.text);
+                                            details.putExtra("country",tweetPlaces.includes.places.get(0).fullName);
+                                            details.putExtra("tag",tweetPlaces.matchingRules.get(0).tag);
+                                            startActivity(details);
+                                            return true;
+                                        }
+                                    });
                                 }
                             });
                         }
@@ -220,10 +336,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
 
 
-        String str_resp = "2/tweets/search/stream?expansions=geo.place_id&tweet.fields=geo&place.fields=geo";
 
 
-        /*mainActivityViewModel.getData(str_resp).observe((LifecycleOwner) this, apiResponse -> {
+        /*
+                String str_resp = "2/tweets/search/stream?expansions=geo.place_id&tweet.fields=geo&place.fields=geo";
+
+        mainActivityViewModel.getData(str_resp).observe((LifecycleOwner) this, apiResponse -> {
             if (apiResponse != null) {
                 try {
                     parseJsonResponse(apiResponse);
@@ -356,5 +474,47 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             return String.format(string, result.substring(0, result.length() - 1));
         }
     }
+
+    /*
+    public void onbuttonClick(View view) {
+        if (view.getId() == R.id.imagebutton)
+        {
+            SearchInput();
+        }
+    }
+    private void SearchInput() {
+        Intent intent;
+        intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault());
+        intent.putExtra(RecognizerIntent.EXTRA_PROMPT, "Say something!");
+        if (intent.resolveActivity(getPackageManager()) != null) {
+            startActivityForResult(intent, 10);
+        } else {
+            Toast.makeText(this, "Your Device Don't Support Speech Input", Toast.LENGTH_SHORT).show();
+        }
+    }
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        switch (requestCode) {
+            case 10: {
+                if (resultCode == RESULT_OK && data != null) {
+
+                    ArrayList<String> result = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
+                    search_data = result.get(0);
+                    Log.d("search_data",search_data);
+                    ed_home_searchbar.setText(result.get(0));
+
+                }
+                break;
+            }
+
+        }
+
+    }
+
+     */
 
 }
